@@ -22,8 +22,7 @@ public class GitlabSendRequest {
 //	public static String USER = "xxxxx";
 //	public static String PASSWORD = "xxxxx";
 	public static Charset charset = StandardCharsets.UTF_8;
-//	public static String strGetUrl = "https://192.168.33.39/api/v4/groups/4/issues?private_token=dnjDAYvwAn7XHPqyRDHi";
-	public static String strGetUrl = "https://192.168.33.39/api/v4/groups/4/issues_statistics?private_token=dnjDAYvwAn7XHPqyRDHi";
+	public static String strGetUrl = "https://x.x.x.x/api/v4/groups/4/issues_statistics?private_token=xxxx";
 
 
 	public static SummaryDto get() throws Exception{
