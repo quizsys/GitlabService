@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.0/css/bootstrap.min.css">
+	 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	 <script src="https://cdnjs.cloudflare.com/ajax/libs/core-js/2.4.1/core.js"></script>
+	 <script src="config.js"></script>
+	 <script src="common.js"></script>
+	<title>ISSUE作成スケジュールを登録</title>
+	<style>
+		.table-secondary {width:25%;}         /* ヘッダー部を25%、データ部を残り（75%）の幅にする */
+		form {display: inline;}               /* ボタンを横並びにする */
+		td input {width: 90%;}                /* 入力欄の大きさを指定 */
+		input[type="checkbox"]{width: auto;}   /* 入力欄の大きさを指定 */
+
+		td select {width: 40%;} /* 入力欄の大きさを指定 */
+		.msg-label {color: red}  /* メッセージラベルの色を設定 */
+		label { white-space: nowrap; margin-right: 15px;} /* チェックボックスの折り返しを防ぐ */
+	</style>
+</head>
+<body>
+	<h1>ISSUE作成スケジュールを登録</h1>
+
+	<form th:action="@{/save}" method="post" th:object="${formModel}" onsubmit="return inputCheck()" name="form1" >
+		<input type="hidden" name="id" th:value="*{id}">
+		<input type="hidden" name="projectName" th:value="${projectName}">
+		<table class="table" border="1">
+		  <tr>
+			  <th class="table-secondary">プロジェクトを選択</th>
+			  <td>
+				<select name="projectId" th:value="*{projectId}" onchange="changeProject()" style="width:90%" required/></select>
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">テンプレートを選択</th>
+			  <td>
+				<select name="templateName" th:value="*{templateName}" style="width:90%" required /></select><br>
+				<span id="template-not-found-message" class="msg-label"></span>
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ISSUE名を入力
+			  	<span style="background-color:skyblue;margin-left:10px;padding-left:15px;padding-right:15px" title="日付文字列を入力すると、ISSUE実施日に応じて変換される。&#13;(ISSUE実施日が指定なしの場合は変換されない)&#13;使用可能な文字列は下記の通り&#13;YYYY : 年&#13;MM :月&#13;DD : 日&#13;[U] : その月の第何週">!</span>
+			  </th>
+			  <td>
+				<input type="text" name="issueTitle" th:value="*{issueTitle}"  maxlength="255" onchange="convertIssueTitle()" required />
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ラベルを選択</th>
+			  <td id="labels-checkbox">
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">見積時間を入力</th>
+			  <td>
+				<input type="number" name="estimateTime" th:value="*{estimateTime}" min= "0" max= "10" step="0.25" required/>H
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">作成タイミングを選択</th>
+			  <td>
+				<select name="createTerms" th:value="*{createTerms}" onchange="selectChange1();calcNextCreateDate();calcNextIssueDate()" required/></select>
+				<select name="createTermsDetail" th:value="*{createTermsDetail}" onchange="calcNextCreateDate();calcNextIssueDate()" required /></select>
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ISSUE実施日を選択</th>
+			  <td>
+				<select name="issueDate" th:value="*{issueDate}" onchange="changeIssueDate()" required /></select>
+				<select name="issueDateDetail" th:value="*{issueDateDetail}" onchange="calcNextIssueDate()" /></select>
+			  </td>
+		  </tr>
+
+		  <tr>
+			  <th class="table-secondary">次回作成日</th>
+			  <td>
+				<div id="next-create-date" class="msg-label"></div>
+			  </td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">次回作成のISSUE名</th>
+			  <td>
+				<div id="next-create-issue-name" class="msg-label"></div>
+			  </td>
+		  </tr>
+
+
+		</table>
+
+		<input type="submit" class="btn btn-primary" value="登　録" />
+	</form>
+
+	<form th:action="@{/plan}" method="GET">
+		<input type="submit" class="btn btn-secondary" value="戻　る" />
+	</form>
+</body>
+
+<script th:inline="javascript">
+
+var endInitFlg = false
+
+var codeMstList = []
+
+/*<![CDATA[*/
+var formModel = /*[[ ${formModel} ]]*/
+/*]]>*/
+
+function init(){
+	/*<![CDATA[*/
+	var codeMst = /*[[ ${codeMst} ]]*/
+	/*]]>*/
+
+	codeMstList[1] = []
+	codeMstList[2] = []
+	codeMstList[3] = []
+	codeMstList[4] = []
+
+	for(var i in codeMst){
+		var code = codeMst[i]
+		if(!codeMstList[code.kbn1][code.kbn2]){
+			codeMstList[code.kbn1][code.kbn2] = []
+		}
+		codeMstList[code.kbn1][code.kbn2][code.id] = code.name
+	}
+	console.log( codeMstList );
+
+	if(formModel.createTerm == 0){
+
+		setSelectOption1()
+		setSelectOption2()
+		setSelectOption3()
+		setSelectOption4()
+
+	} else {
+		setCurrentSelect()
+	}
+
+}
+
+//更新かどうかを判定
+function checkEditFlg(){
+	if(formModel.id == 0){
+		return false;
+	} else {
+		if(endInitFlg){
+			return false
+		} else {
+			return true
+		}
+	}
+}
+
+
+/***************************************************************
+ *  select-boxの初期化と変更時の処理
+ ***************************************************************/
+
+
+function setSelectOption1(){
+
+	var html = ""
+	for(var i in codeMstList[1][0]){
+		html += "<option value=" + i + ">" + codeMstList[1][0][i] +"</option>"
+	}
+	document.getElementsByName("createTerms")[0].innerHTML = html
+
+}
+
+function setSelectOption2(){
+
+	var term = document.getElementsByName("createTerms")[0].value;
+	var html = ""
+	for(var i in codeMstList[2][term]){
+		html += "<option value=" + i + ">" + codeMstList[2][term][i] +"</option>"
+	}
+	document.getElementsByName("createTermsDetail")[0].innerHTML = html
+
+}
+
+function setSelectOption3(){
+
+	var term = document.getElementsByName("createTerms")[0].value;
+	var html = ""
+	for(var i in codeMstList[3][term]){
+		html += "<option value=" + i + ">" + codeMstList[3][term][i] +"</option>"
+	}
+	document.getElementsByName("issueDate")[0].innerHTML = html
+
+}
+
+function setSelectOption4(){
+
+	//console.log("Option4:" +document.getElementsByName("issueDate")[0].value )
+
+	if(document.getElementsByName("issueDate")[0].value == 0 ){
+		resetSelectOption4()
+
+	} else {
+		var term = document.getElementsByName("createTerms")[0].value;
+		var html = ""
+		for(var i in codeMstList[4][term]){
+			html += "<option value=" + i + ">" + codeMstList[4][term][i] +"</option>"
+		}
+		document.getElementsByName("issueDateDetail")[0].innerHTML = html
+	}
+
+}
+
+
+
+function resetSelectOption4(){
+
+	document.getElementsByName("issueDateDetail")[0].innerHTML = ""
+
+}
+
+
+function selectChange1(){
+	setSelectOption2()
+	setSelectOption3()
+	setSelectOption4()
+}
+
+
+function setCurrentSelect(){
+
+	// addから来た場合は終了
+	if(formModel.createTerm == 0){
+		return false;
+	}
+
+	setSelectOption1()
+	document.getElementsByName("createTerms")[0].value = formModel.createTerms
+
+	setSelectOption2()
+	document.getElementsByName("createTermsDetail")[0].value = formModel.createTermsDetail
+
+	setSelectOption3()
+	document.getElementsByName("issueDate")[0].value = formModel.issueDate
+
+	setSelectOption4()
+	document.getElementsByName("issueDateDetail")[0].value = formModel.issueDateDetail
+
+
+	  // editから来た場合の初期化処理
+	  if(checkEditFlg()){
+		  calcNextCreateDate()
+		  calcNextIssueDate()
+		  convertIssueTitle()
+
+	  }
+
+}
+
+function calcNextCreateDate(){
+
+	var createTerms = document.getElementsByName("createTerms")[0].value
+	var createTermsDetail = document.getElementsByName("createTermsDetail")[0].value
+
+	if(createTerms == ""){
+		console.log("[WARN]:createTerms未選択")
+		return false;
+	}
+
+    var successFunc = function(data){
+    	document.getElementById("next-create-date").innerText = data
+    }
+	var method = "GET";
+	var url = "/calcNextCreateDate";
+	var request = "createTerms=" + createTerms + "&createTermsDetail=" + createTermsDetail
+	sendAjaxRequestToApi(method, url, request, successFunc)
+
+}
+
+/**
+ * issueDateを変更したときの処理
+ */
+function changeIssueDate(){
+
+	var issueDate = document.getElementsByName("issueDate")[0].value
+	if(issueDate == 0){
+		grovalIssueDate = ""
+		var issueTitle = document.getElementsByName("issueTitle")[0].value
+    	document.getElementById("next-create-issue-name").innerText = issueTitle
+    	document.getElementsByName("issueDateDetail")[0].innerHTML = ""
+
+	} else {
+		setSelectOption4()
+		calcNextIssueDate()
+	}
+}
+
+
+function calcNextIssueDate(){
+
+	var createTerms = document.getElementsByName("createTerms")[0].value
+	var createTermsDetail = document.getElementsByName("createTermsDetail")[0].value
+	var issueDate = document.getElementsByName("issueDate")[0].value
+	var issueDateDetail = document.getElementsByName("issueDateDetail")[0].value
+
+	if(createTerms == ""){
+		console.log("[WARN]:createTerms未選択")
+		return false;
+	} else if(issueDate == 0){
+		grovalIssueDate = ""
+		console.log("[DEBUG]:issueDate指定なし")
+		return false;
+	}
+
+    var successFunc = function(data){
+    	grovalIssueDate = data
+    	convertIssueTitle()
+    }
+	var method = "GET";
+	var url = "/calcNextIssueDate";
+	var request = "createTerms=" + createTerms + "&createTermsDetail=" + createTermsDetail + "&issueDate=" + issueDate + "&issueDateDetail=" + issueDateDetail
+	sendAjaxRequestToApi(method, url, request, successFunc)
+
+}
+
+
+
+function convertIssueTitle(){
+
+	var issueTitle = document.getElementsByName("issueTitle")[0].value
+
+	if(grovalIssueDate == ""){
+    	document.getElementById("next-create-issue-name").innerText = issueTitle
+		return false;
+	}
+
+	var issueDate  = grovalIssueDate
+
+    var successFunc = function(data){
+    	document.getElementById("next-create-issue-name").innerText = data
+    }
+	var method = "GET";
+	var url = "/convertIssueTitle";
+	var request = "issueTitle=" + encodeURIComponent(issueTitle) + "&issueDate=" + encodeURIComponent(issueDate)
+	sendAjaxRequestToApi(method, url, request, successFunc)
+
+}
+
+
+var grovalIssueDate =""
+
+
+
+
+/***************************************************************
+ *  Gitlabへのリクエスト
+ ***************************************************************/
+
+
+
+/**
+* プロジェクトの一覧を取得
+*/
+function getProjectList(){
+
+  var method = "GET";
+  var successFunc = writeProjectsList;
+  var url =  "/groups/" + GROUP_ID + "/projects";
+  var request = "private_token=" + TOKEN + "&per_page=100";
+  sendAjaxRequest(method, url, request, successFunc)
+
+}
+
+/**
+* プロジェクトの一覧を設定
+*/
+function writeProjectsList(data){
+
+	sysout(data)
+
+	var html = "<option value='0'>--プロジェクトを選択してください--</option>";
+  for(var i in data){
+    html += "<option value='" + data[i].id +"'>" + data[i].name + "</option>";
+  }
+  document.getElementsByName("projectId")[0].innerHTML = html;
+
+  // editから来た場合の初期化処理
+  if(checkEditFlg()){
+	document.getElementsByName("projectId")[0].value = formModel.projectId
+	var projectName =  document.getElementsByName("projectId")[0].selectedOptions[0].label
+	document.getElementsByName("projectName")[0].value = projectName
+	getTemplateList()
+	getLabelList();
+  }
+}
+
+
+function changeProject(){
+
+	//初期化処理フラグをオフに
+	endInitFlg = true
+
+	getTemplateList()
+	getLabelList();
+
+	var projectName =  document.getElementsByName("projectId")[0].selectedOptions[0].label
+	document.getElementsByName("projectName")[0].value = projectName
+
+}
+
+
+/**
+* テンプレート一覧を取得する
+*/
+function getTemplateList(){
+
+  var project_id = document.getElementsByName("projectId")[0].value;
+
+	//テンプレートファイルのリポジトリトップからのパス
+	var templatePath = ".gitlab/issue_templates/"
+
+	var method = "GET";
+	var successFunc = writeTemplateList;
+	var failFunc = templateNotFound;
+ 	var url = "/projects/" + project_id + "/repository/tree/";
+ 	var request = "private_token=" + TOKEN + "&path=" + encodeURIComponent(templatePath) + "&ref=master";
+	sendAjaxRequest(method, url, request, successFunc, failFunc)
+}
+
+/**
+* テンプレートが見つからないときの処理
+*/
+function templateNotFound(data){
+    console.log(data)
+    document.getElementById("template-not-found-message").innerHTML = "※※※テンプレートファイルが見つかりません※※※";
+
+    var html = "<option value='0'>--テンプレートファイルが見つかりません--</option>";
+    document.getElementsByName("templateName")[0].innerHTML = html;
+
+}
+
+
+/**
+* テンプレート一覧を表示する
+*/
+function writeTemplateList(data){
+
+  var array = {}
+
+  array[0] = {}
+  array[0].name = "--　templateを選択してください　--"
+
+  document.getElementById("template-not-found-message").innerHTML = "";
+
+  for(var i in data){
+    if(data[i].name.indexOf(".md") != -1){
+      array[data[i].id] = {}
+      array[data[i].id].name = data[i].name
+    }
+  }
+
+  var html = "";
+  for(var i in array){
+    html += "<option value='" + array[i].name +"'>" + array[i].name + "</option>";
+  }
+
+  // console.log(array)
+  document.getElementsByName("templateName")[0].innerHTML = html;
+
+  // editから来た場合の初期化処理
+  if(checkEditFlg()){
+	  document.getElementsByName("templateName")[0].value = formModel.templateName
+  }
+}
+
+
+
+/**
+* ラベル一覧を取得する
+*/
+function getLabelList(){
+
+  var project_id = document.getElementsByName("projectId")[0].value;
+
+	var method = "GET";
+	var successFunc = writeLabelList;
+	var failFunc = function(){
+		console.log("プロジェクト未選択")
+	}
+ 	var url = "/projects/" + project_id + "/labels";
+ 	var request = "private_token=" + TOKEN + "&per_page=100";
+	sendAjaxRequest(method, url, request, successFunc, failFunc)
+}
+
+
+
+/**
+* ラベルト一覧を表示する
+*/
+function writeLabelList(data){
+
+  var html = "";
+  for(var i in data){
+//    html += "<option value='" + data[i].name +"'>" + data[i].name + "</option>";
+    html += "<label><input type='checkbox' name='labels' value='" + data[i].name +"'>" + data[i].name + "</label>"
+  }
+  document.getElementById("labels-checkbox").innerHTML = html;
+
+  // editから来た場合の初期化処理
+  if(checkEditFlg()){
+	  console.log(formModel.labels)
+	var labels = formModel.labels
+	var labelArr = labels.split(",")
+
+	var allLabels = document.form1.labels
+
+	for(var i in labelArr){
+		for(var j in allLabels){
+			if(allLabels[j].value == labelArr[i]){
+				allLabels[j].checked = true
+			}
+		}
+	}
+
+//	$('select[name="labels"]').val(labelArr).trigger('change');
+  }
+}
+
+/**
+ * フォーム送信前の入力チェック
+ */
+function inputCheck(){
+
+	// projectId未選択
+	if(document.getElementsByName("projectId")[0].value == 0){
+		alert("プロジェクトを選択してください")
+		return false;
+
+	// templateName未選択
+	} else if(document.getElementsByName("templateName")[0].value == "--　templateを選択してください　--"){
+		alert("テンプレートを選択してください")
+		return false;
+
+	// 問題なし
+	} else {
+		return true;
+	}
+}
+
+
+
+//初期化
+ window.onload = function() {
+   getProjectList()
+   init();
+ }
+
+</script>
+
+</html>

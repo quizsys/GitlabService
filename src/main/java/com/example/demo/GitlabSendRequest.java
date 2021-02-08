@@ -18,6 +18,8 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.example.demo.templateCreate.SummaryDto;
+
 public class GitlabSendRequest {
 
 	public static String HOST = "proxy.hoge.jp";

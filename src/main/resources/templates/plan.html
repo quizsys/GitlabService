@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gitlab tools</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.0/css/bootstrap.min.css">
+</head>
+<body>
+
+  <p style="color:red" th:text="${message}"></p>
+
+  <h1>ISSUEスケジューラー</h1>
+
+	<table class="table table-striped">
+		<thead class="thead-dark">
+		  <tr>
+		  	<th>プロジェクト名</th>
+		  	<th>作成するISSUE</th>
+		  	<th>作成条件</th>
+		  	<th>次回作成日</th>
+		  	<th>前回作成結果</th>
+		  	<th>ボタン</th>
+		  </tr>
+		</thead>
+		<tbody th:each="dto : ${list}">
+		  	<td th:text="${dto.projectName}"></td>
+		  	<td th:text="${dto.issueTitle}"></td>
+		  	<td th:text="${dto.createTermsStr}"></td>
+		  	<td th:text="${dto.nextCreateDate}"></td>
+		  	<td th:text="${dto.beforeResult}"></td>
+		  	<td>
+
+			<form th:action="@{/detail}" method="GET">
+				<input type="submit" class="btn btn-primary" value="詳細" />
+				<input type="hidden" name="id" th:value="${dto.id}" />
+			</form>
+
+		  	</td>
+		</tbody>
+	</table>
+	<form th:action="@{/add}" method="GET">
+		<input type="submit" class="btn btn-warning" value="新規作成" />
+	</form>
+
+</body>
+
+</html>

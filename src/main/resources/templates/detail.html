@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.2.0/css/bootstrap.min.css">
+	<title>登録詳細画面</title>
+	<style>
+		.table-secondary {width:25%;}         /* ヘッダー部を25%、データ部を残り（75%）の幅にする */
+		form {display: inline;}               /* ボタンを横並びにする */
+		td input {width: 90%;}                /* 入力欄の大きさを指定 */
+		td select {width: 40%;} /* 入力欄の大きさを指定 */
+		.msg-label {color: red}  /* メッセージラベルの色を設定 */
+	</style>
+</head>
+<body>
+	<h1>作成スケジュール詳細</h1>
+
+		<table class="table" border="1" th:object="${dto}">
+		  <tr>
+			  <th class="table-secondary">プロジェクト</th>
+			  <td th:text="*{projectName}"></td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">テンプレート</th>
+			  <td th:text="*{templateName}"></td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ISSUE名</th>
+			  <td th:text="*{issueTitle}"></td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ラベル</th>
+			  <td th:text="*{labels}"></td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">見積時間</th>
+  			  <td><span th:text="*{estimateTime}"></span>H</td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">作成タイミング</th>
+  			  <td><span th:text="*{createTermsStr}"></span><span th:text="*{createTermsDetailStr}"></span></td>
+		  </tr>
+		  <tr>
+			  <th class="table-secondary">ISSUE実施日</th>
+  			  <td><span th:text="*{issueDateStr}"></span><span th:text="*{issueDateDetailStr}"></span></td>
+		  </tr>
+  		  <tr>
+			  <th class="table-secondary">前回作成結果</th>
+  			  <td th:text="*{beforeResult}"></td>
+		  </tr>
+   		  <tr>
+			  <th class="table-secondary">次回作成日</th>
+  			  <td th:text="*{nextCreateDate}" class="msg-label"></td>
+		  </tr>
+  		  <tr>
+			  <th class="table-secondary">次回作成のISSUE名</th>
+  			  <td th:text="${nextCreateIssueName}" class="msg-label"></td>
+		  </tr>
+		</table>
+
+	<form th:action="@{/edit}" method="GET">
+		<input type="submit" class="btn btn-warning" value="編　集" />
+		<input type="hidden" name="id" th:value="${dto.id}" />
+	</form>
+	<form th:action="@{/delete}" method="POST" onsubmit="return deleteCheck()">
+		<input type="submit" class="btn btn-danger" value="削　除" />
+		<input type="hidden" name="id" th:value="${dto.id}" />
+	</form>
+	<form th:action="@{/plan}" method="GET">
+		<input type="submit" class="btn btn-secondary" value="戻　る" />
+	</form>
+</body>
+
+<script th:inline="javascript">
+
+function deleteCheck(){
+    var checked = confirm("削除します");
+    if (checked == true) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+</script>
+
+</html>
