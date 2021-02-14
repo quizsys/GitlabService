@@ -65,6 +65,7 @@
 	<form th:action="@{/delete}" method="POST" onsubmit="return deleteCheck()">
 		<input type="submit" class="btn btn-danger" value="削　除" />
 		<input type="hidden" name="id" th:value="${dto.id}" />
+		<input type="hidden" name="issueTitle" th:value="${dto.issueTitle}" />
 	</form>
 	<form th:action="@{/plan}" method="GET">
 		<input type="submit" class="btn btn-secondary" value="戻　る" />

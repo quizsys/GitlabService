@@ -80,14 +80,14 @@ public class CalenderUtil {
 
 	/**
 	 * 今週・今月の実行日付を返却する
-	 * @param baseDate
 	 * @param createTerms
 	 * @param CreateTermsDetail : 1:月曜日...7:日曜日
 	 * @return
 	 */
-	public LocalDate getThisCreateDate(LocalDate baseDate, int createTerms, int CreateTermsDetail) {
+	public LocalDate getThisCreateDate(int createTerms, int CreateTermsDetail) {
 
 		LocalDate ret = null;
+		LocalDate baseDate = LocalDate.now();
 
 		if(createTerms == CREATE_TERMS_WEEK) {
 
@@ -104,6 +104,11 @@ public class CalenderUtil {
 
 			//対象日付を取得
 			ret = thisZeroDay.plusDays(CreateTermsDetail);
+		}
+
+		if(!baseDate.isBefore(ret)) {
+			// 今日以前の日付の場合は、次週・自月の日付で再計算
+			ret = getNextCreateDate(baseDate, createTerms, CreateTermsDetail);
 		}
 
 //		System.out.println("次回実行日：" + ret);

@@ -92,8 +92,9 @@
 		<input type="submit" class="btn btn-primary" value="登　録" />
 	</form>
 
-	<form th:action="@{/plan}" method="GET">
+	<form th:action="@{/detail}" method="GET">
 		<input type="submit" class="btn btn-secondary" value="戻　る" />
+		<input type="hidden" name="id" th:value="${formModel.id}">
 	</form>
 </body>
 
@@ -506,7 +507,13 @@ function writeLabelList(data){
   // editから来た場合の初期化処理
   if(checkEditFlg()){
 	  console.log(formModel.labels)
+
 	var labels = formModel.labels
+
+	if(labels == null){
+		return false
+	}
+
 	var labelArr = labels.split(",")
 
 	var allLabels = document.form1.labels

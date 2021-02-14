@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.demo.templateCreate.CalenderUtil;
 import com.example.demo.templateCreate.CodeMstDao;
@@ -46,7 +47,7 @@ public class GitlabServiceController {
      * 一覧を表示（トップページ）
      */
     @RequestMapping(value = "/plan")
-    public String index(Model model) {
+    public String index(Model model, @ModelAttribute("message") String message) {
 
     	//DBから情報を取得しDtoに格納
 		List<TemplateCreateExtraDto> list = templateCreateExtraDao.findAllExtra();
@@ -56,6 +57,7 @@ public class GitlabServiceController {
 //			System.out.println(dto);
 //		}
 
+	    model.addAttribute("message", message);
         model.addAttribute("list", list);
 
         //トップページに遷移する
@@ -173,13 +175,13 @@ public class GitlabServiceController {
      *  更新処理
      */
     @RequestMapping(value = "/save", method = RequestMethod.POST)
-	public String save(@ModelAttribute("formModel") TemplateCreateDto formModel, Model model, @RequestParam("projectName") String projectName) {
+	public String save(RedirectAttributes redirectAttributes, @ModelAttribute("formModel") TemplateCreateDto formModel, Model model, @RequestParam("projectName") String projectName) {
 
     	//次回作成日を計算
     	CalenderUtil calenderUtil = new CalenderUtil(null);
     	LocalDate baseDate = LocalDate.now();
 //    	LocalDate nextCreateDate = calenderUtil.getNextCreateDate(baseDate , formModel.getCreateTerms(), formModel.getCreateTermsDetail());
-    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(baseDate , formModel.getCreateTerms(), formModel.getCreateTermsDetail());
+    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(formModel.getCreateTerms() , formModel.getCreateTermsDetail());
     	formModel.setNextCreateDate(nextCreateDate);
 
     	//更新の場合
@@ -208,8 +210,8 @@ public class GitlabServiceController {
     		System.out.println("プロジェクト名を更新 id:" + saveResult.getId() + ", name:" + saveResult.getName());
     	}
 
-    	//メッセージを追加
-        model.addAttribute("message", "「" + ret.getIssueTitle() + "」を登録しました");
+    	//メッセージを追加（リダイレクトするので、addFlashAttributeで渡す）
+    	redirectAttributes.addFlashAttribute("message", "「" + ret.getIssueTitle() + "」を登録しました");
 
     	//トップページに遷移する
     	return "redirect:/plan";
@@ -221,19 +223,20 @@ public class GitlabServiceController {
      * 削除処理
      */
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
-    public String delete(Model model, @RequestParam("id") int id) {
+    public String delete(RedirectAttributes redirectAttributes, Model model, @RequestParam("id") int id, @RequestParam("issueTitle") String issueTitle) {
 
-    	System.out.println("削除ID：" + id);
+    	System.out.println("削除ID： " + id + ", 削除title: " + issueTitle);
 
     	//DB更新
     	templateCreateDao.deleteById(id);
 
-    	//メッセージを追加
-        model.addAttribute("message", "削除しました");
+    	//メッセージを追加（リダイレクトするので、addFlashAttributeで渡す）
+    	redirectAttributes.addFlashAttribute("message", "「" + issueTitle + "」を削除しました");
 
     	//トップページに遷移する
     	return "redirect:/plan";
     }
+
 
 
 }

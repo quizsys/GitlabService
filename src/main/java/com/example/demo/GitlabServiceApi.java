@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.burnDown.BurnDownDao;
 import com.example.demo.burnDown.BurnDownDto;
+import com.example.demo.burnDown.BurnDownReturnDto;
 import com.example.demo.templateCreate.CalenderUtil;
 import com.example.demo.templateCreate.HolidayDao;
 import com.example.demo.templateCreate.HolidayDto;
@@ -78,16 +79,26 @@ public class GitlabServiceApi {
      */
 	@CrossOrigin
 	@GetMapping("/burndown")
-	public List<BurnDownDto> getBurnDown(@RequestParam("milestone") String milestone, @RequestParam("label") String label) throws Exception {
+	public BurnDownReturnDto getBurnDown(@RequestParam("milestone") String milestone, @RequestParam("label") String label, @RequestParam("startDate") String startDate, @RequestParam("endDate") String endDate) throws Exception {
 
 //		System.out.println(milestone);
 //		System.out.println(label);
 
-    	//DBから情報を取得し値を返却する
-		List<BurnDownDto> ret =  burndownDao.findByMilestoneAndLabel(milestone, label);
+		//祝日のリストを取得
+		LocalDate since = LocalDate.parse(startDate);
+		LocalDate until = LocalDate.parse(endDate);
+		List<HolidayDto> tmpholidayList = holidayDao.findByDateBetween(since, until);
+		List<String> holidayList = new ArrayList<>();
+		for(HolidayDto dto :tmpholidayList) {
+			holidayList.add(dto.getDate().toString());
+		}
+
+    	//DBから情報を取得
+		List<BurnDownDto> burnDownList =  burndownDao.findByMilestoneAndLabel(milestone, label);
+
+		BurnDownReturnDto ret = new BurnDownReturnDto(burnDownList, holidayList);
 		System.out.println(ret);
 
-//		return burndownDao.findByMilestoneAndLabel(milestone);
 		return ret;
     }
 
@@ -101,9 +112,8 @@ public class GitlabServiceApi {
 
     	//次回作成日を計算
     	CalenderUtil calenderUtil = new CalenderUtil(null);
-    	LocalDate today = LocalDate.now();
+    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(Integer.parseInt(createTerms) , Integer.parseInt(createTermsDetail));
 
-    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(today , Integer.parseInt(createTerms), Integer.parseInt(createTermsDetail));
 		return nextCreateDate.toString();
     }
 
@@ -116,10 +126,10 @@ public class GitlabServiceApi {
 			@RequestParam("issueDate") String issueDate, @RequestParam("issueDateDetail") String issueDateDetail) {
 
 		CalenderUtil calenderUtil = null;
-    	LocalDate today = LocalDate.now();
 
 		if(Integer.parseInt(issueDateDetail) > 31) {
 			// 営業日計算ありの場合
+	    	LocalDate today = LocalDate.now();
 			ArrayList<String> holidayList = getHolidayList(today);
 			calenderUtil = new CalenderUtil(holidayList);
 
@@ -129,7 +139,7 @@ public class GitlabServiceApi {
 		}
 
     	//次回作成日を計算
-    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(today , Integer.parseInt(createTerms), Integer.parseInt(createTermsDetail));
+    	LocalDate nextCreateDate = calenderUtil.getThisCreateDate(Integer.parseInt(createTerms) , Integer.parseInt(createTermsDetail));
 
     	//次回のissueの実施日を計算
     	LocalDate nextIssueDate = calenderUtil.getIssueDate(nextCreateDate, Integer.parseInt(issueDate), Integer.parseInt(issueDateDetail));
