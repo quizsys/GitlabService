@@ -2,19 +2,24 @@ package com.example.demo;
 
 import java.nio.charset.Charset;
 import java.time.LocalDate;
+import java.util.ArrayList;
 
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
 import com.example.demo.templateCreate.SummaryDto;
@@ -56,6 +61,41 @@ public class GitlabSendRequest {
     	int closed = openAndClosedArray[1];
 
 		return new SummaryDto(today, opened, todo, doing, done, closed);
+	}
+
+
+	/**
+	 * ISSUEの統計情報を取得
+	 * @return
+	 * @throws Exception
+	 */
+	public String getAuthToken(String userName, String password) throws Exception {
+
+		// ISSUE作成のPOSTリクエスト
+		String strPostIssueUrl = "https://192.168.33.39/oauth/token";
+
+		if(userName.length() == 0 || password.length() == 0) {
+			System.out.println("リクエストパラメータエラー");
+			return "400";
+		}
+
+		// リクエストを作成
+		ArrayList<NameValuePair> nvps = new ArrayList<NameValuePair>();
+		nvps.add(new BasicNameValuePair("grant_type", "password"));
+		nvps.add(new BasicNameValuePair("username", userName));
+		nvps.add(new BasicNameValuePair("password", password));
+
+		System.out.println("リクエストURL:" + strPostIssueUrl);
+
+		// ISSUE作成のリクエストを送信
+		String ret = sendPostRequest(strPostIssueUrl, nvps);
+
+		// returnCodeがエラー値違いであれば、tokenを抽出
+		if(ret.length() != 3) {
+			ret = new Util().returnTokenFromStr(ret);
+		}
+
+		return ret;
 	}
 
 
@@ -135,4 +175,32 @@ public class GitlabSendRequest {
 		return httpclient;
 
 	}
+
+
+	/**
+	 * POSTリクエストを送り、レスポンスの文字列を返す
+	 * @param url
+	 * @param nvps
+	 * @return
+	 * @throws Exception
+	 */
+	private String sendPostRequest(String url, ArrayList<NameValuePair> nvps) throws Exception {
+
+		String ret = "";
+		HttpClient httpclient = getHttpClient();
+		HttpPost post = new HttpPost(url);
+        post.setEntity(new UrlEncodedFormEntity(nvps, charset));
+
+		HttpResponse res = httpclient.execute(post);
+		int status = res.getStatusLine().getStatusCode();
+		System.out.println(res.getStatusLine());
+
+		if (status == HttpStatus.SC_CREATED || status == HttpStatus.SC_OK ){
+			ret =EntityUtils.toString(res.getEntity(),charset);
+		} else {
+			ret = Integer.toString(status);
+		}
+		return ret;
+	}
+
 }

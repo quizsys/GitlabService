@@ -49,4 +49,23 @@ public class Util {
         return Integer.parseInt(strFoward2);
 
 	}
+
+
+
+	/**
+	 * strからtokenの数値を返却する
+	 * @param str
+	 * @return token
+	 */
+	public String returnTokenFromStr(String str) {
+    	String subStr = "\"access_token\":";
+    	int index = str.indexOf(subStr);
+    	int length = subStr.length();
+    	int length2 = index + length;
+        String strFoward = str.substring(length2);
+        int index2 = strFoward.indexOf(",");
+        String strFoward2 = strFoward.substring(0, index2);
+        return strFoward2.replaceAll("\"", "");
+
+	}
 }

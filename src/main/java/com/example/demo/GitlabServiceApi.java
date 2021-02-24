@@ -5,12 +5,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.demo.auth.AuthReturnDto;
 import com.example.demo.burnDown.BurnDownDao;
 import com.example.demo.burnDown.BurnDownDto;
 import com.example.demo.burnDown.BurnDownReturnDto;
@@ -22,6 +26,8 @@ import com.example.demo.templateCreate.SummaryDto;
 
 @RestController
 public class GitlabServiceApi {
+
+	private static final Logger LOGGER = LogManager.getLogger(GitlabServiceApi.class);
 
 	@Autowired
     SummaryDao summaryDao;
@@ -161,6 +167,41 @@ public class GitlabServiceApi {
     }
 
 
+
+    /**
+     * 次回のISSUE名を返却する
+     * @throws Exception
+     */
+	@CrossOrigin
+	@PostMapping("/auth")
+	public AuthReturnDto auth(@RequestParam("userName") String userName, @RequestParam("password") String password) throws Exception {
+
+		GitlabSendRequest gitlabSendRequest = new GitlabSendRequest();
+    	// TOKENを取得
+		String token = gitlabSendRequest.getAuthToken(userName, password);
+		String gitUrl = "";
+		String groupId = "";
+		String retCode = "200";
+		String errorMessage = "";
+
+		if(token.length() == 3) {
+			// エラー発生時
+			retCode = token;
+			token = "";
+			errorMessage = "ユーザ名またはパスワードが正しくありません";
+		} else {
+			//成功時
+			gitUrl = GrobalConfig.GIT_URL;
+			groupId = GrobalConfig.GROUP_ID;
+		}
+
+		return new AuthReturnDto(token, retCode, errorMessage, gitUrl, groupId);
+
+
+
+    }
+
+
 	//
 	/**
 	 * 今月と来月の祝日リストを作成
@@ -181,6 +222,15 @@ public class GitlabServiceApi {
 		return holidayList;
 	}
 
+	/**
+	 * パラメータをログに出力する
+	 * @param msg
+	 */
+	@CrossOrigin
+	@GetMapping("/logger")
+	private void logger(@RequestParam("msg") String msg) {
+		LOGGER.info(msg);
+	}
 
 
 }

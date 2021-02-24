@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="OFF">
+
+<properties>
+	<property name="name">service-access</property>
+	<property name="dest">/gitlab-batch/log/</property>
+	<property name="pattern">%d{yyyy-MM-dd HH:mm:ss,SSS} [%-5p] - %m%n
+	</property>
+</properties>
+
+  <appenders>
+    <Console name="console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${pattern}"/>
+    </Console>
+		<RollingRandomAccessFile name="RollingFile"
+  			fileName="${dest}${name}.log" filePattern="${dest}${name}-%d{yyyyMMdd}.log">
+			<PatternLayout>
+				 <charset>UTF-8</charset>
+				<pattern>${pattern}</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy />
+			</Policies>
+			<DefaultRolloverStrategy max="10" />
+		</RollingRandomAccessFile>
+  </appenders>
+
+  <loggers>
+    <Logger name="org.example" level="info" additivity="false">
+      <appender-ref level="info" ref="console"/>
+    </Logger>
+    <root level="info">
+      <appender-ref ref="console"/>
+      <appender-ref ref="RollingFile"/>
+    </root>
+  </loggers>
+</configuration>
